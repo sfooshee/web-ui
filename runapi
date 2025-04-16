@@ -1,0 +1,51 @@
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+import os
+import asyncio
+from webui import run_browser_agent  # Make sure this function is importable
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/run_with_stream")
+async def run_with_stream_api(request: Request):
+    body = await request.json()
+    result = await run_browser_agent(
+        agent_type=body.get("agent_type", "custom"),
+        llm_provider=body.get("llm_provider", "openai"),
+        llm_model_name=body.get("llm_model_name", "gpt-4o"),
+        llm_num_ctx=body.get("llm_num_ctx", 16000),
+        llm_temperature=body.get("llm_temperature", 0.6),
+        llm_base_url=body.get("llm_base_url", ""),
+        llm_api_key=body.get("llm_api_key", ""),
+        use_own_browser=body.get("use_own_browser", False),
+        keep_browser_open=body.get("keep_browser_open", False),
+        headless=body.get("headless", True),
+        disable_security=body.get("disable_security", True),
+        window_w=body.get("window_w", 1280),
+        window_h=body.get("window_h", 1100),
+        save_recording_path=body.get("save_recording_path", "./tmp/record_videos"),
+        save_agent_history_path=body.get("save_agent_history_path", "./tmp/agent_history"),
+        save_trace_path=body.get("save_trace_path", "./tmp/traces"),
+        enable_recording=body.get("enable_recording", True),
+        task=body.get("task", "go to google.com and search 'OpenAI'"),
+        add_infos=body.get("add_infos", ""),
+        max_steps=body.get("max_steps", 100),
+        use_vision=body.get("use_vision", True),
+        max_actions_per_step=body.get("max_actions_per_step", 10),
+        tool_calling_method=body.get("tool_calling_method", "auto"),
+        chrome_cdp=body.get("chrome_cdp", ""),
+        max_input_tokens=body.get("max_input_tokens", 128000)
+    )
+    return {"result": result}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("runapi:app", host="0.0.0.0", port=port, reload=False)
